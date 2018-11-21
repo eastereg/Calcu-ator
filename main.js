@@ -1,210 +1,231 @@
-const ee = new EventEmitter();
-const App = React.createClass({  
-  render() {    
-    return (
-      <main className="react-calculator">
-        <InputField />
-        <TotalRecall />
-        <ButtonSetNumbers />
-        <ButtonSetFunctions />
-        <ButtonSetEquations />      
-      </main>
-    )
+html {
+  background: #100a1c;
+  background-image:
+    radial-gradient(50% 30% ellipse at center top, #201e40 0%, rgba(0,0,0,0) 100%),
+    radial-gradient(60% 50% ellipse at center bottom, #261226 0%, #100a1c 100%);
+  background-attachment: fixed;
+  color: #6cacc5;
+}
+
+body {
+  color: #6cacc5;
+  font: 300 18px/1.6 "Source Sans Pro",sans-serif;
+  margin: 0;
+  padding: 5em 0 2em;
+  text-align: center;
+}
+
+h1 {
+  font-weight: 300;
+  margin: 0;
+}
+
+/* Gradient text only on Webkit */
+.warning {
+  background: -webkit-linear-gradient(45deg,  #c97874 10%, #463042 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #8c5059;
+  font-weight: 400;
+  margin: 0 auto 6em;
+  max-width: 9em;
+}
+
+.calculator {
+  font-size: 28px;
+  margin: 0 auto;
+  width: 10em;
+  
+  &::before,
+  &::after {
+    content: " ";
+    display: table;
   }
-});
-const Button = React.createClass({
-  _handleClick() {
-    let text = this.props.text,
-        cb = this.props.clickHandler;
-    
-    if (cb) {
-      cb.call(null, text);
+  
+  &::after {
+    clear: both;
+  }
+}
+
+/* Calculator after dividing by zero */
+.broken {
+  animation: broken 2s;
+  transform: translate3d(0,-2000px,0);
+  opacity: 0;
+}
+
+.viewer {
+  color: #c97874;
+  float: left;
+  line-height: 3em;
+  text-align: right;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 7.5em;
+  height: 3em;
+}
+
+button {
+  border: 0;
+  background: rgba(42,50,113, .28);
+  color: #6cacc5;
+  cursor: pointer;
+  float: left;
+  font: inherit;
+  margin: 0.25em;
+  width: 2em;
+  height: 2em;
+  transition: all 0.5s;
+  
+  &:hover {
+    background: #201e40;
+  }
+  
+  &:focus {
+    outline: 0; // Better check accessibility
+
+    /* The value fade-ins that appear */
+    &::after {
+      animation: zoom 1s;
+      animation-iteration-count: 1;
+      animation-fill-mode: both; // Fix Firefox from firing animations only once
+      content: attr(data-num);
+      cursor: default;
+      font-size: 100px;
+      position: absolute;
+           top: 1.5em;
+           left: 50%;
+      text-align: center;
+      margin-left: -24px;
+      opacity: 0;
+      width: 48px;    
     }
-  },
-  
-  render() {
-    return (
-      <button className={this.props.klass} onClick={this._handleClick}>
-        <span className="title">{this.props.text}</span>
-      </button>
-    );
   }
-});
-const ContentEditable = React.createClass({
-  _handleClick() {
-    const cb = this.props.clickHandler;
+}
 
-    if (cb) {
-      cb.call(this);
-    }
-  },
-  
-  render() {
-    return (
-      <div className="editable-field" contentEditable={this.props.initEdit} spellcheck={this.props.spellCheck} onClick={this._handleClick}>
-        {this.props.text}
-      </div>
-    )
-  }
-});
+/* Same as above, modified for operators */
+.ops:focus::after {
+  content: attr(data-ops);
+  margin-left: -210px;
+  width: 420px;
+}
 
-const InputField = React.createClass({
-  _updateField(newStr) {
-    newStr = newStr.split ? newStr.split(' ').reverse().join(' ') : newStr;
-    return this.setState({text: newStr});
-  },
-  
-  getInitialState() {
-    this.props.text = this.props.text || '0';
-    
-    return {text: this.props.text};
-  },
-  
-  componentWillMount() {
-    ee.addListener('numberCruncher', this._updateField);
-  },
-  
-  render() {    
-    return <ContentEditable text={this.state.text} initEdit="false" spellcheck="false" clickHandler={this._clickBait} />
-  }
-});
-const TotalRecall = React.createClass({
-  _toggleMemories() {
-    this.setState({show: !this.state.show});
-  },
-  
-  _recallMemory(memory) {
-    store.newInput = memory;
-    ee.emitEvent('toggle-memories');
-  },
-  
-  getInitialState() {
-    return {show: false}
-  },
-  
-  componentWillMount() {
-    ee.addListener('toggle-memories', this._toggleMemories);
-  },
-  
-  render() {
-    let classNames = `memory-bank ${this.state.show ? 'visible' : ''}`;
-    
-    return (
-      <section className={classNames}>
-        <Button text="+" clickHandler={this._toggleMemories} klass="toggle-close" />
-        {store.curMemories.map((mem) => {
-          return (
-            <Button klass="block memory transparent" text={mem} clickHandler={this._recallMemory} />
-          );
-        })}
-      </section>
-    )
-  }
-});
-const ButtonSetFunctions = React.createClass({
-  _showMemoryBank() {
-    ee.emitEvent('toggle-memories');
-  },
-  
-  _clear() {
-    store.newInput = 0;
-  },
-  
-  _contentClear() {
-    let curInput = String(store.curInput),
-        lessOne = curInput.substring(0, (curInput.length - 1));
-    
-    return store.newInput = lessOne === '' ? 0 : lessOne;
-  },
-  
-  render() {
-    return (
-      <section className="button-set--functions">
-        <Button klass="long-text" text="recall" clickHandler={this._showMemoryBank} />
-        <Button klass="long-text" text="clear" clickHandler={this._clear} />
-        <Button text="&larr;" clickHandler={this._contentClear} />
-      </section>
-    )
-  }
-});
-const ButtonSetEquations = React.createClass({
-  _eq(type) {
-    store.newInput = `${store.curInput} ${type} `;
-  },
-  
-  _equate() {
-    store.newInput = eval(store.curInput);
-  },
-  
-  render() {
-    return (
-      <section className="button-set--equations">
-        <Button text="+" clickHandler={this._eq} />
-        <Button text="-" clickHandler={this._eq} />
-        <Button text="*" clickHandler={this._eq} />
-        <Button text="/" clickHandler={this._eq} />
-        <Button text="=" clickHandler={this._equate} />
-      </section>
-    )  
-  }
-});
-const ButtonSetNumbers = React.createClass({
-  _number(num) {
-    if (!store.curInput) {
-      return store.newInput = num;
-    }
-    
-    return store.newInput = `${store.curInput}${num}`;
-  },
-  
-  render() {
-    return (
-      <section className="button-set--numbers">
-        <Button text="1" clickHandler={this._number} />
-        <Button text="2" clickHandler={this._number} />
-        <Button text="3" clickHandler={this._number} />
-        <Button text="4" clickHandler={this._number} />
-        <Button text="5" clickHandler={this._number} />
-        <Button text="6" clickHandler={this._number} />
-        <Button text="7" clickHandler={this._number} />
-        <Button text="8" clickHandler={this._number} />
-        <Button text="9" clickHandler={this._number} />
-        <Button text="0" clickHandler={this._number} />
-      </section>
-    )
-  }
-});
+/* Same as above, modified for result */
+.equals:focus::after {
+  content: attr(data-result);
+  margin-left: -300px;
+  width: 600px;
+}
 
-let store = {
-  input: 0,
-  memory: [],
-  get curInput() {
-    return this.input;
-  },
+/* Reset button */
+
+.reset {
+  background: rgba(201,120,116,.28);
+  color:#c97874;
+  font-weight: 400;
+  margin-left: -77px;
+  padding: 0.5em 1em;
+  position: absolute;
+    top: -20em;
+    left: 50%;
+  width: auto;
+  height: auto;
   
-  get curMemories() {
-    return this.memory.filter((m) => m !== undefined);
-  },
-  
-  set commitMemory(input) {
-    this.memory.push(input);
-  },
-  
-  set newInput(str) {    
-    let curInput = str,
-      oldInput = this.curInput;
-    
-    if (this.curMemories.indexOf(oldInput) === -1) {
-      this.commitMemory = oldInput;
-    }
-    
-    this.input = curInput;
-    ee.emitEvent('numberCruncher', [this.curInput]);
+  &:hover {
+    background: #c97874;
+    color: #100a1c;    
   }
-};
+  
+  /* When button is revealed */
+  &.show {
+    top: 20em;
+    animation: fadein 4s;
+  }
+}
 
-React.render(
-  <App />,
-  document.querySelector('body')
-);
+/* Animations */
 
+/* Values that appear onclick */
+@keyframes zoom {
+  0% { 
+    transform: scale(.2); 
+    opacity: 1;
+  }
+  
+  70% { 
+    transform: scale(1); 
+  }
+  
+  100% { 
+    opacity: 0;
+  }
+}
+
+/* Division by zero animation */
+@keyframes broken {
+  0% {
+    transform: translate3d(0,0,0);
+    opacity: 1;
+  }
+
+  5% {
+    transform: rotate(5deg);
+  }
+
+  15% {
+    transform: rotate(-5deg);
+  }
+
+  20% {
+    transform: rotate(5deg);
+  }
+
+  25% {
+    transform: rotate(-5deg);
+  }
+
+  50% {
+    transform: rotate(45deg);
+  }
+
+  70% {
+    transform: translate3d(0,2000px,0);
+    opacity: 1;
+  }
+
+  75% {
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate3d(0,-2000px,0);
+  }
+}
+
+/* Reset button fadein */
+@keyframes fadein {
+  0% {
+    top: 20em;
+    opacity: 0;
+  }
+  
+  50% {
+    opacity: 0;
+  }
+  
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 420px) {
+  .calculator {
+    width: 12em;
+  }
+  .viewer {
+    width: 8.5em;
+  }
+  button {
+    margin: 0.5em;
+  }
+}
